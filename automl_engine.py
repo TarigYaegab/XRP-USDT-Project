@@ -164,9 +164,7 @@ def build_preprocessor(X: pd.DataFrame, task: str, select_percent=80, outlier_fa
             "cat",
             Pipeline([
                 ("impute", SimpleImputer(strategy="most_frequent")),
-                ("onehot", OneHotEncoder(
-                    handle_unknown="infrequent_if_exist",
-                    min_frequency=0.01, sparse_output=False)),
+                ("onehot", OneHotEncoder(handle_unknown="infrequent_if_exist", min_frequency=0.01, sparse_output=False)),
             ]),
             cat_cols,
         ))

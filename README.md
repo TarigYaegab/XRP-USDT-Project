@@ -69,6 +69,16 @@ Pick an interval (1m–1d) and number of candles to see the XRP/USDT market. Dat
 | **Model selection** | Models are ranked by cross-validation on the **training set only** (F1-macro for classification, RMSE for regression; `TimeSeriesSplit` for time series). The best is the **Champion**; test metrics are computed on unseen data. |
 | **Export** | The champion is refit on all data and saved with `joblib`. |
 
+### Architecture diagrams
+
+**Full AutoML run (`run_automl`)**
+
+![run_automl flow](docs/run_automl_flow.png)
+
+**Inside one pipeline (preprocessing + model)**
+
+![pipeline flow](docs/pipeline_flow.png)
+
 ### Models
 
 | | Classification | Regression |
@@ -131,6 +141,9 @@ automl_engine.py     # ML logic: detection, cleaning, preprocessing, models, exp
 automl_studio.py     # Streamlit UI (Live Market + Model Dashboard)
 requirements.txt     # dependencies
 README.md
+docs/
+├── pipeline_flow.png      # diagram: preprocessing + model pipeline
+└── run_automl_flow.png    # diagram: full AutoML run
 ```
 
 ---

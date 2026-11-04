@@ -52,15 +52,27 @@ if page == "🔮 Live Market":
         df = live(interval, limit)
         last, prev = df.iloc[-1], df.iloc[-2]
         m1, m2, m3 = st.columns(3)
-        m1.metric("Last price (USDT)", f"{last['close']:.5f}",
-                  f"{(last['close'] / prev['close'] - 1):.2%}")
-        m2.metric("Volume", f"{last['volume']:,.0f}")
-        m3.metric("Candles", len(df))
-        fig = go.Figure(go.Candlestick(x=df["time"], open=df["open"], high=df["high"],
-                                       low=df["low"], close=df["close"]))
-        fig.update_layout(height=480, xaxis_rangeslider_visible=False,
-                          xaxis_title="Time (UTC)", yaxis_title="Price (USDT)")
-        st.plotly_chart(fig, use_container_width=True)
+        m1.metric(
+            "Last price (USDT)",
+            f"{last['close']:.5f}",
+            f"{(last['close'] / prev['close'] - 1):.2%}")
+        m2.metric(
+            "Volume",
+            f"{last['volume']:,.0f}")
+        m3.metric(
+            "Candles", len(df))
+        fig = go.Figure(go.Candlestick(
+            x=df["time"],
+            open=df["open"],
+            high=df["high"],
+            low=df["low"],
+            close=df["close"]))
+        fig.update_layout(
+            height=480,
+            xaxis_rangeslider_visible=False,
+            xaxis_title="Time (UTC)",
+            yaxis_title="Price (USDT)")
+        st.plotly_chart(fig,use_container_width=True)
         st.bar_chart(df.set_index("time")["volume"])
     except requests.RequestException as exc:
         st.error(f"Could not reach Binance: {exc}")
