@@ -96,7 +96,7 @@ XGBoost and LightGBM are optional: if they are not installed the app still works
 
 ---
 
-## 📈 Live-market features
+## Live-market features
 
 `market_to_dataset` builds these features from Binance candles:
 
@@ -163,7 +163,7 @@ docs/
 
 ---
 
-## 🛣 Roadmap
+##  Roadmap
 
 - [ ] Prediction tab: load a `.pkl` and predict on new data or the latest candle
 - [ ] Hyperparameter search for the champion
