@@ -20,7 +20,7 @@ from automl_engine import (
 
 st.set_page_config(
     page_title="AutoML Studio",
-    page_icon="🤖",
+    page_icon="🔮",
     layout="wide")
 st.sidebar.title(
     "🤖 XRP/USDT Live Price Prediction")
