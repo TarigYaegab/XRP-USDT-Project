@@ -2,6 +2,8 @@
 
 Run:  streamlit run automl_studio.py
 """
+import html
+
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -49,6 +51,61 @@ INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d"]
 _ST_VERSION = tuple(int(p) for p in st.__version__.split(".")[:2] if p.isdigit())
 FULL = {"width": "stretch"} if _ST_VERSION >= (1, 50) else {"use_container_width": True}
 
+# Look of the predicted class (UP / DOWN / NEUTRAL get fixed colours; any other label gets blue)
+CLASS_STYLE = {"UP": ("▲", "#2ecc71", "🟢"), "DOWN": ("▼", "#ff6b6b", "🔴"), "NEUTRAL": ("●", "#9aa0a6", "⚪")}
+
+
+def _style(label):
+    return CLASS_STYLE.get(str(label).upper(), ("◆", "#4dabf7", "🔹"))
+
+
+def _conviction(p, n_classes):
+    if p < 1 / n_classes + 0.10:
+        return "barely above chance"
+    if p < 0.6:
+        return "low conviction"
+    if p < 0.8:
+        return "moderate conviction"
+    return "high conviction"
+
+
+def class_badge(label, confidence=None, n_classes=3):
+    """Big coloured card for the predicted class."""
+    icon, color, _ = _style(label)
+    sub = ""
+    if confidence is not None:
+        sub = (f'<div style="font-size:14px;opacity:.85;margin-top:4px">'
+               f'{confidence:.1%} confidence · {_conviction(confidence, n_classes)}</div>')
+    st.markdown(
+        f'<div style="display:flex;align-items:center;gap:18px;padding:20px 24px;border-radius:16px;'
+        f'border:1px solid {color};background:{color}1f;">'
+        f'<div style="font-size:46px;line-height:1;color:{color}">{icon}</div>'
+        f'<div><div style="font-size:12px;opacity:.7;letter-spacing:.12em;text-transform:uppercase">'
+        f'Predicted class</div>'
+        f'<div style="font-size:36px;font-weight:700;color:{color};line-height:1.15">'
+        f'{html.escape(str(label))}</div>{sub}</div></div>',
+        unsafe_allow_html=True)
+
+
+def proba_chart(classes, proba):
+    """Horizontal probability bars in a fixed, readable order, with the 'pure chance' level marked."""
+    pairs = list(zip([str(c) for c in classes], [float(p) for p in proba]))
+    preferred = {"DOWN": 0, "NEUTRAL": 1, "UP": 2}
+    pairs.sort(key=lambda cp: (preferred.get(cp[0].upper(), 99), cp[0]))
+    labels = [c for c, _ in pairs]
+    values = [p for _, p in pairs]
+    fig = go.Figure(go.Bar(
+        x=values, y=labels, orientation="h",
+        marker_color=[_style(c)[1] for c in labels],
+        text=[f"{v:.1%}" for v in values], textposition="outside", cliponaxis=False,
+        hovertemplate="%{y}: %{x:.1%}<extra></extra>"))
+    fig.add_vline(x=1 / len(labels), line_dash="dot", line_color="#9aa0a6",
+                  annotation_text="chance", annotation_position="top")
+    fig.update_layout(height=60 + 46 * len(labels), margin=dict(l=10, r=40, t=30, b=10),
+                      xaxis=dict(range=[0, 1.12], tickformat=".0%", showgrid=False),
+                      yaxis=dict(autorange="reversed"), showlegend=False)
+    return fig
+
 
 # ------------------------------------------------------------------
 # LIVE MARKET
@@ -69,14 +126,12 @@ if page == "🔮 Live Market":
         df = live(interval, limit)
         last, prev = df.iloc[-1], df.iloc[-2]
         m1, m2, m3 = st.columns(3)
-        m1.metric("Last price (USDT)", f"{last['close']:.5f}",
-                  f"{(last['close'] / prev['close'] - 1):.2%}")
+        m1.metric("Last price (USDT)", f"{last['close']:.5f}",f"{(last['close'] / prev['close'] - 1):.2%}")
         m2.metric("Volume", f"{last['volume']:,.0f}")
         m3.metric("Candles", len(df))
-        fig = go.Figure(go.Candlestick(x=df["time"], open=df["open"], high=df["high"],
-                                       low=df["low"], close=df["close"]))
+        fig = go.Figure(go.Candlestick(x=df["time"], open=df["open"], high=df["high"],low=df["low"], close=df["close"]))
         fig.update_layout(height=480, xaxis_rangeslider_visible=False,
-                          xaxis_title="Time (UTC)", yaxis_title="Price (USDT)")
+        xaxis_title="Time (UTC)", yaxis_title="Price (USDT)")
         st.plotly_chart(fig, **FULL)
         st.bar_chart(df.set_index("time")["volume"])
     except requests.RequestException as exc:
@@ -99,11 +154,12 @@ elif page == "🧠 Model Dashboard":
     if source == "Upload CSV":
         up = st.file_uploader("Upload a .csv file", type=["csv"])
         if up is not None:
-            df = pd.read_csv(up)
+        df = pd.read_csv(up)
     else:
         a, b, c, d = st.columns(4)
         interval = a.selectbox("Interval", ["15m", "1h", "4h", "1d"], index=1)
-        days = b.selectbox("History (days)", [30, 90, 180], index=2)
+        days = b.selectbox("History (days)", [30, 90, 180, 365, 730], index=2,help="Longer history = more rows. Daily (1d) candles need 365+ days to give "
+        "enough rows; 1h candles over 730 days download ~17,500 rows (slower).")
         horizon = c.number_input("Predict N candles ahead", 1, 72, 12)
         mtask = d.selectbox(
             "Market task",
@@ -137,6 +193,9 @@ elif page == "🧠 Model Dashboard":
         st.stop()
 
     st.write(f"**{len(df):,} rows × {df.shape[1]} columns**")
+    if len(df) < 300:
+        st.warning(f"Only {len(df):,} rows. That is too few to train a reliable model"
+                   + (": try a longer history or a smaller interval (e.g. 1h instead of 1d)." if market_meta else "."))
     st.dataframe(df.head(10), **FULL, hide_index=True)
 
     # ---- 2. TARGET + SETTINGS ----
@@ -183,8 +242,9 @@ elif page == "🧠 Model Dashboard":
                  "the champion is still chosen by cross-validation.")
         missing_pkgs = [m for m in extra_models if not OPTIONAL_MODELS.get(m, False)]
         if missing_pkgs:
+            pip_names = {"XGBoost": "xgboost-cpu", "LightGBM": "lightgbm"}   # xgboost-cpu: no 300 MB GPU dependency
             st.warning(f"Not installed: {', '.join(missing_pkgs)}. "
-                       f"Run `pip install {' '.join(m.lower() for m in missing_pkgs)}` and restart the app.")
+                       f"Run `pip install {' '.join(pip_names[m] for m in missing_pkgs)}` and restart the app.")
         tune = st.checkbox(
             "Tune the champion's hyperparameters (slower)",
             help="Random search on the training set only. The tuned model replaces the champion "
@@ -235,6 +295,8 @@ elif page == "🧠 Model Dashboard":
     st.subheader(f"🏆 Champion: {res['champion_name']}{' (tuned)' if tuned else ''}  ({res['task']})")
     st.caption(f"Selected by cross-validation on the training set ({res['n_train']:,} rows). "
                f"Test metrics use {res['n_test']:,} unseen rows.")
+    for w in res.get("warnings", []):
+        st.warning(w)
     mcols = st.columns(len(res["champion_test_metrics"]))
     for col, (k, v) in zip(mcols, res["champion_test_metrics"].items()):
         base = res["baseline"].get(k)
@@ -314,7 +376,9 @@ elif page == "🧠 Model Dashboard":
         e3.metric("Win rate", "n/a" if np.isnan(bt["win_rate"]) else f"{bt['win_rate']:.1%}")
         e4.metric("Max drawdown", f"{bt['max_drawdown']:.2%}")
         fig = px.line(bt["equity"], x="period", y=["Strategy", "Buy & hold"],
+                      color_discrete_map={"Strategy": "#2ecc71", "Buy & hold": "#ff6b6b"},
                       labels={"value": "Equity (start = 1)", "period": f"Non-overlapping {meta['horizon']}-candle periods"})
+        fig.update_layout(legend_title_text="")
         st.plotly_chart(fig, **FULL)
         st.caption("Long-or-flat strategy: hold for N candles when the predicted return is above zero. "
                    "Only non-overlapping periods are used, so the sample is small and noisy. "
@@ -402,9 +466,11 @@ else:
                 st.error("Not enough candles to compute the features.")
                 st.stop()
             preds = pipe.predict(feats[needed])
-            out = pd.DataFrame({"time (UTC)": feats["time"], "close": feats["close"], "prediction": preds})
+            out = pd.DataFrame({"time (UTC)": feats["time"].dt.strftime("%Y-%m-%d %H:%M"),
+                                "close": feats["close"], "prediction": preds})
             last = out.iloc[-1]
-            st.subheader(f"Latest closed candle: {last['time (UTC)']}")
+            table = out
+            st.subheader(f"Latest closed candle: {last['time (UTC)']} UTC")
             if bundle["task"] == "regression":
                 if bundle["target"] == "target_future_return":
                     h = meta.get("horizon", "N")
@@ -415,13 +481,30 @@ else:
                 else:
                     st.metric(f"Predicted {bundle['target']}", f"{last['prediction']:.5f}")
             else:
-                st.metric("Predicted class", str(last["prediction"]))
                 try:
-                    proba = pipe.predict_proba(feats[needed])[-1]
-                    st.write({str(c): f"{p:.1%}" for c, p in zip(pipe.classes_, proba)})
+                    proba_all = pipe.predict_proba(feats[needed])
+                    classes = [str(c) for c in pipe.classes_]
                 except Exception:
-                    pass
-            st.dataframe(out, **FULL, hide_index=True)
+                    proba_all, classes = None, None
+                left, right = st.columns([1, 1.5])
+                with left:
+                    if proba_all is not None:
+                        class_badge(last["prediction"], float(proba_all[-1].max()), len(classes))
+                    else:
+                        class_badge(last["prediction"])
+                with right:
+                    if proba_all is not None:
+                        st.plotly_chart(proba_chart(classes, proba_all[-1]), **FULL)
+                table = pd.DataFrame({
+                    "Time (UTC)": out["time (UTC)"],
+                    "Close": out["close"],
+                    "Signal": [f"{_style(p)[2]} {p}" for p in out["prediction"]],
+                })
+                if proba_all is not None:
+                    table["Confidence"] = [f"{row.max():.0%}" for row in proba_all]
+                st.caption("Probabilities come from the model and are not guaranteed to be calibrated. "
+                           "Three classes means ~33% is pure chance.")
+            st.dataframe(table, **FULL, hide_index=True)
             st.caption("Not financial advice. Short-term price prediction is close to random; "
                        "check the model's market evaluation on the dashboard first.")
     else:

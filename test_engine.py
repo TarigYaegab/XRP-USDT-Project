@@ -139,6 +139,33 @@ def test_gap_ignored_for_random_split(table):
     assert r["gap"] == 0
 
 
+def test_tiny_time_series_gives_friendly_error():
+    """~58 rows (e.g. 90 daily candles) with gap=12 used to crash inside sklearn with a cryptic message."""
+    rng = np.random.default_rng(0)
+    small = pd.DataFrame({"a": rng.normal(size=58), "b": rng.normal(size=58)})
+    small["y"] = small["a"] + rng.normal(scale=0.1, size=58)
+    with pytest.raises(ValueError, match="too few for time-series cross-validation"):
+        ae.run_automl(small, "y", time_ordered=True, gap=12, explain=False)
+
+
+def test_cv_folds_are_reduced_when_data_is_small():
+    rng = np.random.default_rng(0)
+    d = pd.DataFrame({"a": rng.normal(size=120), "b": rng.normal(size=120)})
+    d["y"] = d["a"] + rng.normal(scale=0.1, size=120)
+    r = ae.run_automl(d, "y", time_ordered=True, gap=12, cv_folds=10, explain=False)
+    assert any("CV folds reduced" in w for w in r["warnings"])
+    assert any("training rows" in w and "unstable" in w for w in r["warnings"])
+
+
+def test_max_ts_folds_matches_sklearn():
+    from sklearn.model_selection import TimeSeriesSplit
+    for n in (34, 60, 100, 400):
+        for gap in (0, 12):
+            k = ae._max_ts_folds(n, gap, 5)
+            if k:
+                list(TimeSeriesSplit(n_splits=k, gap=gap).split(np.arange(n)))   # must not raise
+
+
 def test_gap_too_large_raises(table):
     with pytest.raises(ValueError, match="purge gap"):
         ae.run_automl(table.drop(columns=["label"]), "y", time_ordered=True, gap=350)

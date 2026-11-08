@@ -384,6 +384,15 @@ compute_metrics = _metrics   # public alias
 # ------------------------------------------------------------------
 # 6. Full AutoML run
 # ------------------------------------------------------------------
+def _max_ts_folds(n_train: int, gap: int, wanted: int, min_first_train: int = 10) -> int:
+    """Largest k <= wanted for which TimeSeriesSplit(k, gap) is feasible on n_train rows
+    (and its first fold still has at least `min_first_train` training rows). 0 if none."""
+    for k in range(int(wanted), 1, -1):
+        if n_train - gap - (n_train // (k + 1)) * k >= min_first_train:
+            return k
+    return 0
+
+
 def run_automl(
     df: pd.DataFrame, target: str, task: str | None = None,
     time_ordered=False, test_size=0.2, cv_folds=5,
@@ -392,10 +401,10 @@ def run_automl(
     """Clean -> preprocess -> train several models -> pick champion -> export-ready pipeline.
 
     extra_models: optional list like ['XGBoost', 'LightGBM'] added to the candidates.
-    gap:          (time series only) rows purged between train and test, and between CV folds.
-                  Use the prediction horizon: a target looking N rows ahead overlaps the next N rows.
-    tune:         random-search the champion's hyperparameters (adopted only if CV improves).
-    explain:      compute permutation importance on the test set.
+    gap:(time series only) rows purged between train and test, and between CV folds.
+    Use the prediction horizon: a target looking N rows ahead overlaps the next N rows.
+    tune:random-search the champion's hyperparameters (adopted only if CV improves).
+    explain:compute permutation importance on the test set.
     """
     target = str(target).strip()
     df = df.copy()
@@ -426,21 +435,38 @@ def run_automl(
     if task == "classification" and y.value_counts().min() < 2:
         raise ValueError("Each class needs at least 2 rows. Pick another target or merge rare classes.")
 
+    run_warnings = []
     if time_ordered:
         cut = int(len(clean) * (1 - test_size))
         train_end = cut - gap
         if train_end < 30:
             raise ValueError(
-                f"Not enough rows for a chronological split with a purge gap of {gap}. "
-                "Use more data, a smaller test size or a smaller gap.")
+                f"Not enough rows for a chronological split with a purge gap of {gap}: "
+                f"only {max(train_end, 0)} training rows. Use a longer history, a smaller test size "
+                "or a smaller gap.")
         X_tr, X_te, y_tr, y_te = X.iloc[:train_end], X.iloc[cut:], y.iloc[:train_end], y.iloc[cut:]
-        cv = TimeSeriesSplit(n_splits=cv_folds, gap=gap)
+        folds = _max_ts_folds(len(X_tr), gap, cv_folds)
+        if folds == 0:
+            raise ValueError(
+                f"Only {len(X_tr)} training rows: too few for time-series cross-validation with a purge "
+                f"gap of {gap}. Use a longer history (at least ~100 rows are recommended), a smaller "
+                "gap, or a smaller test size.")
+        if folds < cv_folds:
+            run_warnings.append(
+                f"CV folds reduced from {cv_folds} to {folds}: only {len(X_tr)} training rows "
+                f"with a purge gap of {gap}.")
+        cv = TimeSeriesSplit(n_splits=folds, gap=gap)
     else:
         strat = y if task == "classification" else None
-        X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=test_size,
-                                                  random_state=42, stratify=strat)
+        X_tr, X_te, y_tr, y_te = train_test_split(
+            X, y, test_size=test_size,random_state=42, stratify=strat)
         cv = (StratifiedKFold(cv_folds, shuffle=True, random_state=42)
-              if task == "classification" else KFold(cv_folds, shuffle=True, random_state=42))
+            if task == "classification" else KFold(cv_folds, shuffle=True, random_state=42))
+
+    if len(X_tr) < 200:
+        run_warnings.append(
+            f"Only {len(X_tr)} training rows: results will be very unstable. "
+            "Use more data before trusting any metric.")
 
     scoring = "f1_macro" if task == "classification" else "neg_root_mean_squared_error"
 
@@ -535,6 +561,7 @@ def run_automl(
         "skipped_models": skipped_models,
         "gap": gap, "time_ordered": bool(time_ordered), "select_percent": int(select_percent),
         "tuning": tuning, "importance": importance, "meta": {"source": "upload"},
+        "warnings": run_warnings,
     }
     if task == "classification":
         labels = sorted(pd.unique(y))
@@ -598,13 +625,13 @@ def model_card_markdown(result) -> str:
     ]
     if tun:
         lines += ["", "## Hyperparameter tuning",
-                  f"- {tun['metric']} before: {tun['cv_before']:.4f}, after: {tun['cv_after']:.4f}"
-                  f" ({'adopted' if tun['adopted'] else 'not adopted'})",
-                  f"- Best params: {tun['best_params']}"]
+        f"- {tun['metric']} before: {tun['cv_before']:.4f}, after: {tun['cv_after']:.4f}"
+        f" ({'adopted' if tun['adopted'] else 'not adopted'})",
+        f"- Best params: {tun['best_params']}"]
     meta = result.get("meta", {})
     if meta.get("source") == "binance":
         lines += ["", "## Market data",
-                  f"- {meta.get('symbol')} {meta.get('interval')} candles, predicting {meta.get('horizon')} candles ahead"]
+        f"- {meta.get('symbol')} {meta.get('interval')} candles, predicting {meta.get('horizon')} candles ahead"]
     lines += ["", "_Not financial advice. Short-term price prediction is close to random._"]
     return "\n".join(lines)
 
