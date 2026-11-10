@@ -31,11 +31,14 @@ An end-to-end AutoML app built with Streamlit. A non-technical user uploads a CS
 Requires **Python 3.10+**. Developed and tested with pandas 3.0, scikit-learn 1.9 and Streamlit 1.66.
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt          # core: everything the app needs
+pip install -r requirements-extra.txt    # optional: XGBoost + LightGBM
 streamlit run automl_studio.py
 ```
 
 Then open http://localhost:8501.
+
+> **Slow or unstable internet?** Install the core first and run the app; XGBoost/LightGBM are optional and can be added later. `requirements-extra.txt` uses `xgboost-cpu` (≈6 MB) instead of `xgboost`, whose Linux wheel pulls a ≈300 MB NVIDIA GPU library (`nvidia-nccl`) that CPU use does not need. For flaky connections add `--default-timeout=100 --retries 10` to `pip install`.
 
 To open it from another device on the same network:
 
@@ -163,7 +166,8 @@ Notes:
 ```
 automl_engine.py       # ML logic: detection, cleaning, preprocessing, models, tuning, export, Binance helpers
 automl_studio.py       # Streamlit UI (Live Market, Model Dashboard, Predict)
-requirements.txt       # dependencies
+requirements.txt       # core dependencies
+requirements-extra.txt # optional: XGBoost (CPU) + LightGBM
 requirements-dev.txt   # + pytest
 tests/
 └── test_engine.py     # unit and end-to-end tests for the engine
@@ -193,6 +197,8 @@ docs/
 ---
 
 ## 🛣 Roadmap
+
+Full bilingual (English / العربية) roadmap: see [ROADMAP.md](ROADMAP.md).
 
 - [x] Prediction page (live candles or CSV)
 - [x] Hyperparameter search for the champion

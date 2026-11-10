@@ -1,10 +1,19 @@
-pandas
-numpy
-scikit-learn
-scipy
-streamlit
-plotly
-requests
-joblib
-xgboost
-lightgbm
+# AutoML Studio - core dependencies / المكتبات الأساسية
+# Install / التثبيت:  pip install -r requirements.txt
+# Python 3.10+ required / يتطلب Python 3.10 أو أحدث
+#
+# Developed and tested with / طُوّر واختُبر على:
+#   pandas 3.0, scikit-learn 1.9, Streamlit 1.66 (Python 3.13 and 3.14)
+# Versions are not pinned: if a newer release breaks something, install the
+# tested versions above.
+# الإصدارات غير مثبّتة؛ إن كسر إصدار أحدث شيئاً فثبّت الإصدارات المذكورة أعلاه.
+# Slow internet / إنترنت بطيء:  add  --default-timeout=100 --retries 10
+
+pandas          # data tables, cleaning / جداول البيانات والتنظيف
+numpy           # numeric arrays / العمليات العددية
+scikit-learn    # Pipeline, models, CV, metrics / الـ Pipeline والنماذج والتقييم
+scipy           # statistics used by scikit-learn / إحصاء تعتمد عليه scikit-learn
+streamlit       # the web UI / واجهة الويب
+plotly          # charts: candles, correlation, confusion matrix / الرسوم
+requests        # Binance public API calls / جلب الشموع من Binance
+joblib          # save and load the .pkl model / حفظ وتحميل ملف pkl

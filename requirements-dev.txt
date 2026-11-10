@@ -1,2 +1,6 @@
+# AutoML Studio - development and tests / للتطوير والاختبارات
+# Install / التثبيت:  pip install -r requirements-dev.txt
+# Run tests / تشغيل الاختبارات:  pytest -q   (33 tests / 33 اختباراً)
+
 -r requirements.txt
-pytest
+pytest          # unit and end-to-end tests / اختبارات الوحدات والتشغيل الكامل

@@ -1,0 +1,12 @@
+# AutoML Studio - optional extra models / نماذج إضافية اختيارية
+# Install / التثبيت:  pip install -r requirements-extra.txt
+# The app works without them: missing models are skipped with a warning.
+# التطبيق يعمل بدونها؛ النموذج غير المثبّت يُتخطى مع تحذير.
+
+# xgboost-cpu = same `import xgboost`, about 6 MB. Do NOT use plain `xgboost` on
+# Linux: it downloads a ~300 MB NVIDIA GPU library (nvidia-nccl) not needed on CPU.
+# xgboost-cpu نفس الاستيراد وحجمه نحو 6 ميغابايت؛ لا تستخدم xgboost العادية على
+# Linux لأنها تنزّل مكتبة NVIDIA بحجم نحو 300 ميغابايت لا يحتاجها المعالج.
+xgboost-cpu
+
+lightgbm

@@ -1,6 +1,6 @@
 """AutoML Studio — upload a CSV (or pull live XRP/USDT) and get a champion model as .pkl.
 
-Run:  streamlit run automl_studio.py
+Run:  streamlit run automl.py
 """
 import html
 
@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 
-from automl_engine import (
+from automl import (
     MARKET_FEATURES,
     OPTIONAL_MODELS,
     compute_metrics,
@@ -30,7 +30,7 @@ from automl_engine import (
 )
 
 st.set_page_config(
-    page_title="AutoML Studio",
+    page_title="AutoML live Market ",
     page_icon="🤖",
     layout="wide")
 st.sidebar.title(
@@ -154,12 +154,12 @@ elif page == "🧠 Model Dashboard":
     if source == "Upload CSV":
         up = st.file_uploader("Upload a .csv file", type=["csv"])
         if up is not None:
-        df = pd.read_csv(up)
+            df = pd.read_csv(up)
     else:
         a, b, c, d = st.columns(4)
         interval = a.selectbox("Interval", ["15m", "1h", "4h", "1d"], index=1)
         days = b.selectbox("History (days)", [30, 90, 180, 365, 730], index=2,help="Longer history = more rows. Daily (1d) candles need 365+ days to give "
-        "enough rows; 1h candles over 730 days download ~17,500 rows (slower).")
+            "enough rows; 1h candles over 730 days download ~17,500 rows (slower).")
         horizon = c.number_input("Predict N candles ahead", 1, 72, 12)
         mtask = d.selectbox(
             "Market task",
