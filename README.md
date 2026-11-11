@@ -11,8 +11,10 @@ An end-to-end AutoML app built with Streamlit. A non-technical user uploads a CS
 
 
 🎥 Live Demo 
-end-to-end AutoML app for XRP/USDT 
-[![Watch the demo](docs/video_thumbnail.png)]([https://www.youtube.com/watch?v=YOUR_VIDEO_ID](https://youtu.be/Rq5JeEJY09o))
+
+end-to-end AutoML app for XRP/USDT
+
+[![Watch the demo](docs/video_thumbnail.png)](https://www.youtube.com/watch?v=Rq5JeEJY09o)
 ---
 
 ## ✨ Features
