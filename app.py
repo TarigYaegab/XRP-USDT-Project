@@ -147,7 +147,7 @@ elif page == "🧠 Model Dashboard":
     st.caption("Upload data or use the live market → pick a target → get a champion model.")
 
     # ---- 1. DATA SOURCE ----
-    st.header("1 · Data")
+    st.header("1 · Live Crypto Forecasting with scikit-learn")
     source = st.radio("Source", ["Upload CSV", "🔮 Live market (XRP/USDT)"], horizontal=True)
     df, default_target, time_ordered, market_meta = None, None, False, None
 
