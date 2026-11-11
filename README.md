@@ -1,11 +1,5 @@
 
 
-https://github.com/user-attachments/assets/48b7c2b5-fa6b-481f-b30b-3f907788529c
-
-
-
-
-
 # 🤖 market-prediction-dashboard — XRP/USDT
 
 An end-to-end AutoML app built with Streamlit. A non-technical user uploads a CSV (or pulls live XRP/USDT candles from Binance), picks a target column, and gets a fully trained, compared and ready-to-use **champion model** as a single downloadable `.pkl` file, with no code. A **Predict** page then applies the model to the latest live candles or to a new CSV.
@@ -17,6 +11,8 @@ An end-to-end AutoML app built with Streamlit. A non-technical user uploads a CS
 🎥 Live Demo 
 
 end-to-end AutoML app for XRP/USDT
+
+https://github.com/user-attachments/assets/48b7c2b5-fa6b-481f-b30b-3f907788529c
 
 [![Watch the demo](docs/video_thumbnail.png)](https://www.youtube.com/watch?v=Rq5JeEJY09o)
 ---
