@@ -33,7 +33,7 @@ Requires **Python 3.10+**. Developed and tested with pandas 3.0, scikit-learn 1.
 ```bash
 pip install -r requirements.txt          # core: everything the app needs
 pip install -r requirements-extra.txt    # optional: XGBoost + LightGBM
-streamlit run automl_studio.py
+streamlit run app.py
 ```
 
 Then open http://localhost:8501.
@@ -43,7 +43,7 @@ Then open http://localhost:8501.
 To open it from another device on the same network:
 
 ```bash
-streamlit run automl_studio.py --server.address 0.0.0.0
+streamlit run app.py --server.address 0.0.0.0
 ```
 
 Run the tests:
@@ -97,7 +97,7 @@ Pick an interval (1m–1d) and number of candles to see the XRP/USDT market. Dat
 
 ### Architecture diagrams
 
-**Full AutoML run (`run_automl`)**
+**Full AutoML run (`app`)**
 
 ![run_automl flow](docs/run_automl_flow.png)
 
@@ -164,8 +164,8 @@ Notes:
 ## 🗂 Project structure
 
 ```
-automl_engine.py       # ML logic: detection, cleaning, preprocessing, models, tuning, export, Binance helpers
-automl_studio.py       # Streamlit UI (Live Market, Model Dashboard, Predict)
+automl.py       # ML logic: detection, cleaning, preprocessing, models, tuning, export, Binance helpers
+app.py       # Streamlit UI (Live Market, Model Dashboard, Predict)
 requirements.txt       # core dependencies
 requirements-extra.txt # optional: XGBoost (CPU) + LightGBM
 requirements-dev.txt   # + pytest
